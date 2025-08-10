@@ -1,11 +1,14 @@
 import React from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { usePermissions } from './hooks/usePermissions'
 import { LoginForm } from './components/auth/LoginForm'
 import { SignUpForm } from './components/auth/SignUpForm'
+import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import { Monitor, Shield, Database } from 'lucide-react'
 
 function AuthenticatedApp() {
   const { userProfile, company, signOut } = useAuth()
+  const { isAdmin } = usePermissions()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,6 +44,9 @@ function AuthenticatedApp() {
       </nav>
 
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {isAdmin ? (
+          <AdminDashboard />
+        ) : (
         <div className="text-center py-12">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
             ¡Bienvenido a SignagePro!
@@ -92,6 +98,7 @@ function AuthenticatedApp() {
             </ul>
           </div>
         </div>
+        )}
       </main>
     </div>
   )
