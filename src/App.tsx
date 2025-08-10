@@ -55,9 +55,19 @@ function UnauthenticatedApp() {
 function AppContent() {
   const { user, loading } = useAuth()
   const [showReturnOption, setShowReturnOption] = React.useState(false)
+  const [bypassLoading, setBypassLoading] = React.useState(false)
+
+  // Check if user wants to bypass loading on component mount
+  React.useEffect(() => {
+    const shouldBypass = localStorage.getItem('bypassLoading')
+    if (shouldBypass === 'true') {
+      setBypassLoading(true)
+      localStorage.removeItem('bypassLoading')
+    }
+  }, [])
 
   React.useEffect(() => {
-    if (loading) {
+    if (loading && !bypassLoading) {
       // Show return option after 5 seconds of loading
       const timer = setTimeout(() => {
         setShowReturnOption(true)
@@ -67,14 +77,27 @@ function AppContent() {
     } else {
       setShowReturnOption(false)
     }
-  }, [loading])
+  }, [loading, bypassLoading])
 
   const handleReturnToDashboard = () => {
-    // Force reload to restart the auth process
-    window.location.reload()
+    // Set flag to bypass loading and go directly to dashboard
+    localStorage.setItem('bypassLoading', 'true')
+    window.location.replace('/')
   }
 
-  if (loading) {
+  const handleGoToDashboard = () => {
+    // Set flag to bypass loading and go directly to dashboard  
+    localStorage.setItem('bypassLoading', 'true')
+    window.location.replace('/')
+  }
+
+  // If user wants to bypass loading, show authenticated app immediately
+  if (bypassLoading || (user && !loading)) {
+    return <AuthenticatedApp />
+  }
+
+  // Show loading screen only if still loading and not bypassing
+  if (loading && !bypassLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
@@ -94,7 +117,7 @@ function AppContent() {
                   Reintentar
                 </button>
                 <button
-                  onClick={() => window.location.replace('/')}
+                  onClick={handleGoToDashboard}
                   className="text-indigo-600 hover:text-indigo-700 text-sm"
                 >
                   Ir al Dashboard
@@ -107,6 +130,7 @@ function AppContent() {
     )
   }
 
+  // If not loading and no user, show unauthenticated app
   return user ? <AuthenticatedApp /> : <UnauthenticatedApp />
 }
 
