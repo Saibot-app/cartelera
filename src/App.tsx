@@ -86,7 +86,9 @@ function AuthenticatedApp() {
               <li>• Roles y permisos establecidos</li>
               <li>• Storage configurado para archivos multimedia</li>
               <li>• Triggers de sincronización activos</li>
-              <li>• Empresa: <strong>{company.name}</strong> (ID: {company.id.slice(0, 8)}...)</li>
+              {company && (
+                <li>• Empresa: <strong>{company.name}</strong> (ID: {company.id.slice(0, 8)}...)</li>
+              )}
             </ul>
           </div>
         </div>
