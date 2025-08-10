@@ -94,7 +94,7 @@ function AppContent() {
                   Reintentar
                 </button>
                 <button
-                  onClick={() => window.location.replace('/dashboard')}
+                  onClick={() => window.location.replace('/')}
                   className="text-indigo-600 hover:text-indigo-700 text-sm"
                 >
                   Ir al Dashboard
