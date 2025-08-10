@@ -23,7 +23,7 @@ export function LoginForm({ onSwitchToSignUp }: LoginFormProps) {
     if (signInError) {
       const errorMessage = signInError?.message || String(signInError)
       if (errorMessage === 'Invalid login credentials') {
-        setError('Error de credenciales. Esto puede ocurrir si: 1) Email/contraseña incorrectos, 2) Tu cuenta no está confirmada por email, o 3) La cuenta no existe. Si acabas de registrarte, revisa tu email y confirma tu cuenta primero.')
+        setError('Error de credenciales. Posibles causas: 1) Email/contraseña incorrectos, 2) Tu cuenta no está confirmada por email (revisa tu bandeja y spam), 3) La cuenta no existe. Si acabas de confirmar tu email, espera unos minutos e intenta de nuevo.')
       } else if (errorMessage === 'Email not confirmed') {
         setError('Tu cuenta no está confirmada. Revisa tu email (incluyendo spam) y haz clic en el enlace de confirmación antes de iniciar sesión.')
       } else {

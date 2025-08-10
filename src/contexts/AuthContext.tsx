@@ -67,24 +67,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (profileError) {
-        console.error('Error loading user profile:', profileError)
-        setLoading(false)
-        return
-      }
+        console.warn('User profile not found, attempting to create it:', profileError)
+        
+        // Try to get user email from auth
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user?.email) {
+          // Try to create a basic profile - the user will need to set up company later
+          await tryCreateUserProfile(user.id, user.email)
+          
+          // Try loading profile again
+          const { data: newProfile, error: newProfileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single()
+            
+          if (newProfileError) {
+            console.error('Still cannot load user profile after creation attempt:', newProfileError)
+            setLoading(false)
+            return
+          }
+          
+          setUserProfile(newProfile)
+          
+          // Try to load company if profile has company_id
+          if (newProfile.company_id) {
+            const { data: companyData, error: companyError } = await supabase
+              .from('companies')
+              .select('*')
+              .eq('id', newProfile.company_id)
+              .single()
 
-      setUserProfile(profile)
-
-      // Luego obtener la información de la empresa
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', profile.company_id)
-        .single()
-
-      if (companyError) {
-        console.error('Error loading company:', companyError)
+            if (companyError) {
+              console.error('Error loading company:', companyError)
+            } else {
+              setCompany(companyData)
+            }
+          }
+        } else {
+          console.error('Cannot create profile without email')
+          setLoading(false)
+          return
+        }
       } else {
-        setCompany(companyData)
+        setUserProfile(profile)
+
+        // Luego obtener la información de la empresa
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', profile.company_id)
+          .single()
+
+        if (companyError) {
+          console.error('Error loading company:', companyError)
+        } else {
+          setCompany(companyData)
+        }
       }
 
     } catch (error) {
@@ -118,18 +158,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       }
 
-      // Call edge function to setup company and user profile
-      const { data: setupResult, error: setupError } = await supabase.functions.invoke('setup-company', {
-        body: {
-          userId: data.user.id,
-          email: email,
-          companyName: companyName
-        }
-      })
+      // Try to call edge function to setup company and user profile
+      try {
+        const { data: setupResult, error: setupError } = await supabase.functions.invoke('setup-company', {
+          body: {
+            userId: data.user.id,
+            email: email,
+            companyName: companyName
+          }
+        })
 
-      if (setupError) {
-        console.error('Error setting up company:', setupError)
-        return { error: setupError }
+        if (setupError) {
+          console.warn('Edge function failed, will setup on first login:', setupError)
+          // Don't fail the signup - we'll handle this on first login
+        }
+      } catch (edgeFunctionError) {
+        console.warn('Edge function not available, will setup on first login:', edgeFunctionError)
+        // Edge function might not be deployed yet - handle this gracefully
       }
 
       return { error: null }
@@ -160,6 +205,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { error }
+  }
+
+  const tryCreateUserProfile = async (userId: string, email: string) => {
+    try {
+      // First, try to create a default company for this user
+      const defaultCompanyName = `Empresa de ${email.split('@')[0]}`
+      const slug = `empresa-${userId.slice(0, 8)}-${Date.now()}`
+      
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: defaultCompanyName,
+          slug: slug,
+          subscription_status: 'trial'
+        })
+        .select()
+        .single()
+
+      if (companyError) {
+        console.error('Error creating default company:', companyError)
+        return
+      }
+
+      // Now create the user profile
+      const { error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: email,
+          company_id: company.id,
+          role: 'admin'
+        })
+
+      if (userError) {
+        console.error('Error creating user profile:', userError)
+      } else {
+        console.log('Successfully created user profile and company')
+      }
+
+    } catch (error) {
+      console.error('Error in tryCreateUserProfile:', error)
+    }
   }
 
   const value = {
