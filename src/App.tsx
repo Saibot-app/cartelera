@@ -54,13 +54,54 @@ function UnauthenticatedApp() {
 
 function AppContent() {
   const { user, loading } = useAuth()
+  const [showReturnOption, setShowReturnOption] = React.useState(false)
+
+  React.useEffect(() => {
+    if (loading) {
+      // Show return option after 5 seconds of loading
+      const timer = setTimeout(() => {
+        setShowReturnOption(true)
+      }, 5000)
+      
+      return () => clearTimeout(timer)
+    } else {
+      setShowReturnOption(false)
+    }
+  }, [loading])
+
+  const handleReturnToDashboard = () => {
+    // Force reload to restart the auth process
+    window.location.reload()
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto p-6">
           <Monitor className="h-12 w-12 text-indigo-600 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600">Cargando SignagePro...</p>
+          <p className="text-gray-600 mb-6">Cargando SignagePro...</p>
+          
+          {showReturnOption && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500">
+                ¿La carga está tomando demasiado tiempo?
+              </p>
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={handleReturnToDashboard}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Reintentar
+                </button>
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="text-indigo-600 hover:text-indigo-700 text-sm"
+                >
+                  Ir al Dashboard
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
